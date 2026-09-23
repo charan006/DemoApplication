@@ -14,26 +14,32 @@ pipeline {
         }
 
         stage('Maven-build') {
-                    agent {
-                        docker {
-                            image 'maven:3.9.11-eclipse-temurin-21'
-                        }
-                    }
-                    steps {
-                        sh 'mvn clean package -DskipTests'
-                    }
+            agent {
+                docker {
+                    image 'maven:3.9.11-eclipse-temurin-21'
                 }
+            }
+            steps {
+                sh '''
+                    mkdir -p "$WORKSPACE/.m2/repository"
+                    mvn -Dmaven.repo.local="$WORKSPACE/.m2/repository" \
+                        clean package -DskipTests
+                '''
+            }
+        }
 
-                stage('Test') {
-                    agent {
-                        docker {
-                            image 'maven:3.9.11-eclipse-temurin-21'
-                        }
-                    }
-                    steps {
-                        sh 'mvn test'
-                    }
+        stage('Test') {
+            agent {
+                docker {
+                    image 'maven:3.9.11-eclipse-temurin-21'
                 }
+            }
+            steps {
+                sh '''
+                    mvn -Dmaven.repo.local="$WORKSPACE/.m2/repository" test
+                '''
+            }
+        }
 
         stage('Docker-image-build') {
             steps {
