@@ -1,9 +1,9 @@
 pipeline {
     agent any
 
-     environment {
-            IMAGE_NAME = 'spring-boot-jenkins-demo'
-        }
+    environment {
+        IMAGE_NAME = 'spring-boot-jenkins-demo'
+    }
 
     stages {
 
@@ -23,8 +23,12 @@ pipeline {
             steps {
                 sh '''
                     mkdir -p "$WORKSPACE/.m2/repository"
+
                     mvn -Dmaven.repo.local="$WORKSPACE/.m2/repository" \
                         clean package -DskipTests
+
+                    echo "=== JAR FILE ==="
+                    ls -lh target/
                 '''
             }
         }
@@ -33,6 +37,7 @@ pipeline {
             agent {
                 docker {
                     image 'maven:3.9.11-eclipse-temurin-21'
+                    reuseNode true
                 }
             }
             steps {
@@ -44,7 +49,15 @@ pipeline {
 
         stage('Docker-image-build') {
             steps {
-                sh 'docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .'
+                sh '''
+                    echo "=== WORKSPACE ==="
+                    pwd
+
+                    echo "=== TARGET ==="
+                    ls -lh target/
+
+                    docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .
+                '''
             }
         }
 
@@ -55,7 +68,7 @@ pipeline {
 
                     docker run -d \
                         --name spring-boot-demo \
-                        -p 8000:8000 \
+                        -p 8000:8080 \
                         -e APP_ENV=jenkins \
                         ${IMAGE_NAME}:${BUILD_NUMBER}
                 '''
