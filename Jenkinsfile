@@ -1,9 +1,9 @@
 pipeline {
     agent any
 
-//      environment {
-//             IMAGE_NAME = 'spring-boot-jenkins-demo'
-//         }
+     environment {
+            IMAGE_NAME = 'spring-boot-jenkins-demo'
+        }
 
     stages {
 
