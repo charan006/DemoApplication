@@ -4,6 +4,6 @@ WORKDIR /app
 
 COPY target/spring-boot-jenkins-demo-1.0.0.jar app.jar
 
-EXPOSE 8080
+EXPOSE 8000
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -38,7 +38,7 @@ pipeline {
 
                     docker run -d \
                         --name spring-boot-demo \
-                        -p 8080:8080 \
+                        -p 8000:8000 \
                         -e APP_ENV=jenkins \
                         ${IMAGE_NAME}:${BUILD_NUMBER}
                 '''
@@ -48,7 +48,7 @@ pipeline {
         stage('Health Check') {
             steps {
                 sh 'sleep 5'
-                sh 'curl --fail http://localhost:8080/actuator/health'
+                sh 'curl --fail http://localhost:8000/actuator/health'
             }
         }
     }
