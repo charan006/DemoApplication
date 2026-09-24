@@ -18,20 +18,24 @@ pipeline {
                 docker {
                     image 'maven:3.9.11-eclipse-temurin-21'
                     reuseNode true
-                    args '-v /var/lib/jenkins/.m2:/root/.m2'
                 }
             }
 
             steps {
                 sh '''
-                    echo "HOME=$HOME"
-                    echo "USER=$USER"
-
+                    echo "=== JAVA ==="
                     java -version
+
+                    echo "=== MAVEN ==="
                     mvn -version
 
+                    echo "=== MAVEN CACHE ==="
+                    mkdir -p "$WORKSPACE/.m2/repository"
+                    ls -ld "$WORKSPACE/.m2/repository"
+
+                    echo "=== BUILD ==="
                     mvn -B \
-                        -Dmaven.repo.local=/root/.m2/repository \
+                        -Dmaven.repo.local="$WORKSPACE/.m2/repository" \
                         clean package -DskipTests
                 '''
             }
@@ -42,14 +46,13 @@ pipeline {
                 docker {
                     image 'maven:3.9.11-eclipse-temurin-21'
                     reuseNode true
-                    args '-v /var/lib/jenkins/.m2:/root/.m2'
                 }
             }
 
             steps {
                 sh '''
                     mvn -B \
-                        -Dmaven.repo.local=/root/.m2/repository \
+                        -Dmaven.repo.local="$WORKSPACE/.m2/repository" \
                         test
                 '''
             }
