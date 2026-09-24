@@ -24,14 +24,15 @@ pipeline {
 
             steps {
                 sh '''
-                    echo "=== JAVA ==="
-                    java -version
+                    echo "HOME=$HOME"
+                    echo "USER=$USER"
 
-                    echo "=== MAVEN ==="
+                    java -version
                     mvn -version
 
-                    echo "=== BUILD ==="
-                    mvn -B clean package -DskipTests
+                    mvn -B \
+                        -Dmaven.repo.local=/root/.m2/repository \
+                        clean package -DskipTests
                 '''
             }
         }
@@ -47,8 +48,9 @@ pipeline {
 
             steps {
                 sh '''
-                    echo "=== TEST ==="
-                    mvn -B test
+                    mvn -B \
+                        -Dmaven.repo.local=/root/.m2/repository \
+                        test
                 '''
             }
         }
