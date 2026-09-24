@@ -14,35 +14,17 @@ pipeline {
         }
 
         stage('Maven-build') {
-            agent {
-                docker {
-                    image 'maven:3.9.11-eclipse-temurin-21'
-                    reuseNode true
-                }
-            }
             steps {
                 sh '''
-                    mkdir -p "$WORKSPACE/.m2/repository"
-
-                    mvn -Dmaven.repo.local="$WORKSPACE/.m2/repository" \
-                        clean package -DskipTests
-
-                    echo "=== JAR FILE ==="
-                    ls -lh target/
+                    mvn clean package -DskipTests
                 '''
             }
         }
 
         stage('Test') {
-            agent {
-                docker {
-                    image 'maven:3.9.11-eclipse-temurin-21'
-                    reuseNode true
-                }
-            }
             steps {
                 sh '''
-                    mvn -Dmaven.repo.local="$WORKSPACE/.m2/repository" test
+                    mvn test
                 '''
             }
         }
@@ -50,9 +32,6 @@ pipeline {
         stage('Docker-image-build') {
             steps {
                 sh '''
-                    echo "=== WORKSPACE ==="
-                    pwd
-
                     echo "=== TARGET ==="
                     ls -lh target/
 
