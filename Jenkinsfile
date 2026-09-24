@@ -14,17 +14,41 @@ pipeline {
         }
 
         stage('Maven-build') {
+            agent {
+                docker {
+                    image 'maven:3.9.11-eclipse-temurin-21'
+                    reuseNode true
+                    args '-v /var/lib/jenkins/.m2:/root/.m2'
+                }
+            }
+
             steps {
                 sh '''
-                    mvn clean package -DskipTests
+                    echo "=== JAVA ==="
+                    java -version
+
+                    echo "=== MAVEN ==="
+                    mvn -version
+
+                    echo "=== BUILD ==="
+                    mvn -B clean package -DskipTests
                 '''
             }
         }
 
         stage('Test') {
+            agent {
+                docker {
+                    image 'maven:3.9.11-eclipse-temurin-21'
+                    reuseNode true
+                    args '-v /var/lib/jenkins/.m2:/root/.m2'
+                }
+            }
+
             steps {
                 sh '''
-                    mvn test
+                    echo "=== TEST ==="
+                    mvn -B test
                 '''
             }
         }
@@ -35,7 +59,11 @@ pipeline {
                     echo "=== TARGET ==="
                     ls -lh target/
 
-                    docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .
+                    echo "=== DOCKER ==="
+                    docker --version
+
+                    docker build \
+                        -t ${IMAGE_NAME}:${BUILD_NUMBER} .
                 '''
             }
         }
@@ -43,6 +71,8 @@ pipeline {
         stage('Run Container') {
             steps {
                 sh '''
+                    echo "=== DEPLOYING ==="
+
                     docker rm -f spring-boot-demo || true
 
                     docker run -d \
@@ -50,21 +80,32 @@ pipeline {
                         -p 8000:8080 \
                         -e APP_ENV=jenkins \
                         ${IMAGE_NAME}:${BUILD_NUMBER}
+
+                    docker ps
                 '''
             }
         }
 
         stage('Health Check') {
             steps {
-                sh 'sleep 5'
-                sh 'curl --fail http://localhost:8000/actuator/health'
+                sh '''
+                    echo "=== WAITING FOR APPLICATION ==="
+                    sleep 5
+
+                    echo "=== HEALTH CHECK ==="
+                    curl --fail --retry 5 --retry-delay 2 \
+                        http://localhost:8000/actuator/health
+                '''
             }
         }
     }
 
     post {
         always {
-            sh 'docker logs spring-boot-demo || true'
+            sh '''
+                echo "=== CONTAINER LOGS ==="
+                docker logs spring-boot-demo || true
+            '''
         }
     }
 }
