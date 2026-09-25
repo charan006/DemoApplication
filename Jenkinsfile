@@ -37,8 +37,8 @@ pipeline {
                         --server.port=8000 \
                         > spring-boot.log 2>&1 &
 
-                    // echo "=== APPLICATION STARTED ==="
-                    // sleep 5
+                    echo "=== APPLICATION STARTED ==="
+                    sleep 5
 
                     echo "=== APPLICATION LOG ==="
                     cat spring-boot.log
