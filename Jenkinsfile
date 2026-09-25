@@ -41,7 +41,7 @@ pipeline {
                     sleep 5
 
                     echo "=== APPLICATION LOG ==="
-                    tail -30 spring-boot.log
+                    tail -50 spring-boot.log
 
                     echo "=== RUNNING PROCESS ==="
                     ps aux | grep '[s]pring-boot'
