@@ -13,83 +13,97 @@ pipeline {
             }
         }
 
-        stage('Maven-build') {
-            agent {
-                docker {
-                    image 'maven:3.9.11-eclipse-temurin-21'
-                    reuseNode true
-                }
-            }
+//         stage('Maven-build') {
+//             agent {
+//                 docker {
+//                     image 'maven:3.9.11-eclipse-temurin-21'
+//                     reuseNode true
+//                 }
+//             }
+//
+//             steps {
+//                 sh '''
+//                     echo "=== JAVA ==="
+//                     java -version
+//
+//                     echo "=== MAVEN ==="
+//                     mvn -version
+//
+//                     echo "=== MAVEN CACHE ==="
+//                     mkdir -p "$WORKSPACE/.m2/repository"
+//                     ls -ld "$WORKSPACE/.m2/repository"
+//
+//                     echo "=== BUILD ==="
+//                     mvn -B \
+//                         -Dmaven.repo.local="$WORKSPACE/.m2/repository" \
+//                         clean package -DskipTests
+//                 '''
+//             }
+//         }
+//
+//         stage('Test') {
+//             agent {
+//                 docker {
+//                     image 'maven:3.9.11-eclipse-temurin-21'
+//                     reuseNode true
+//                 }
+//             }
+//
+//             steps {
+//                 sh '''
+//                     mvn -B \
+//                         -Dmaven.repo.local="$WORKSPACE/.m2/repository" \
+//                         test
+//                 '''
+//             }
+//         }
 
-            steps {
-                sh '''
-                    echo "=== JAVA ==="
-                    java -version
+stage('Maven-build') {
+    steps {
+        sh '''
+            echo "=== TARGET ==="
+            ls -lh target/
 
-                    echo "=== MAVEN ==="
-                    mvn -version
+            echo "=== JAVA ==="
+            java -version
+        '''
+    }
+}
 
-                    echo "=== MAVEN CACHE ==="
-                    mkdir -p "$WORKSPACE/.m2/repository"
-                    ls -ld "$WORKSPACE/.m2/repository"
+stage('Maven-build') {
+    steps {
+        sh '''
+            mvn -B \
+                -Dmaven.repo.local="$WORKSPACE/.m2/repository" \
+                clean package -DskipTests
+        '''
+    }
+}
 
-                    echo "=== BUILD ==="
-                    mvn -B \
-                        -Dmaven.repo.local="$WORKSPACE/.m2/repository" \
-                        clean package -DskipTests
-                '''
-            }
-        }
+stage('Run Application') {
+    steps {
+        sh '''
+            echo "=== DEPLOYING SPRING BOOT APP ==="
 
-        stage('Test') {
-            agent {
-                docker {
-                    image 'maven:3.9.11-eclipse-temurin-21'
-                    reuseNode true
-                }
-            }
+            # Stop previous application if running
+            pkill -f 'spring-boot-jenkins-demo.*\\.jar' || true
 
-            steps {
-                sh '''
-                    mvn -B \
-                        -Dmaven.repo.local="$WORKSPACE/.m2/repository" \
-                        test
-                '''
-            }
-        }
+            # Start application in background
+            nohup java -jar target/*.jar \
+                --server.port=8000 \
+                > spring-boot.log 2>&1 &
 
-        stage('Docker-image-build') {
-            steps {
-                sh '''
-                    echo "=== TARGET ==="
-                    ls -lh target/
+            echo "=== APPLICATION STARTED ==="
+            sleep 5
 
-                    echo "=== DOCKER ==="
-                    docker --version
+            echo "=== APPLICATION LOG ==="
+            tail -30 spring-boot.log
 
-                    docker build \
-                        -t ${IMAGE_NAME}:${BUILD_NUMBER} .
-                '''
-            }
-        }
-
-        stage('Run Container') {
-            steps {
-                sh '''
-                    echo "=== DEPLOYING ==="
-
-                    docker rm -f spring-boot-demo || true
-
-                    docker run -d \
-                        --name spring-boot-demo \
-                        -p 8000:8080 \
-                        -e APP_ENV=jenkins \
-                        ${IMAGE_NAME}:${BUILD_NUMBER}
-
-                    docker ps
-                '''
-            }
-        }
+            echo "=== RUNNING PROCESS ==="
+            ps aux | grep '[s]pring-boot'
+        '''
+    }
+}
 
         stage('Health Check') {
             steps {
@@ -105,12 +119,4 @@ pipeline {
         }
     }
 
-    post {
-        always {
-            sh '''
-                echo "=== CONTAINER LOGS ==="
-                docker logs spring-boot-demo || true
-            '''
-        }
-    }
 }
