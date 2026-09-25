@@ -13,97 +13,41 @@ pipeline {
             }
         }
 
-//         stage('Maven-build') {
-//             agent {
-//                 docker {
-//                     image 'maven:3.9.11-eclipse-temurin-21'
-//                     reuseNode true
-//                 }
-//             }
-//
-//             steps {
-//                 sh '''
-//                     echo "=== JAVA ==="
-//                     java -version
-//
-//                     echo "=== MAVEN ==="
-//                     mvn -version
-//
-//                     echo "=== MAVEN CACHE ==="
-//                     mkdir -p "$WORKSPACE/.m2/repository"
-//                     ls -ld "$WORKSPACE/.m2/repository"
-//
-//                     echo "=== BUILD ==="
-//                     mvn -B \
-//                         -Dmaven.repo.local="$WORKSPACE/.m2/repository" \
-//                         clean package -DskipTests
-//                 '''
-//             }
-//         }
-//
-//         stage('Test') {
-//             agent {
-//                 docker {
-//                     image 'maven:3.9.11-eclipse-temurin-21'
-//                     reuseNode true
-//                 }
-//             }
-//
-//             steps {
-//                 sh '''
-//                     mvn -B \
-//                         -Dmaven.repo.local="$WORKSPACE/.m2/repository" \
-//                         test
-//                 '''
-//             }
-//         }
 
-stage('Maven-build') {
-    steps {
-        sh '''
-            echo "=== TARGET ==="
-            ls -lh target/
+        stage('Maven-build') {
+            steps {
+                sh '''
+                    mvn -B \
+                        -Dmaven.repo.local="$WORKSPACE/.m2/repository" \
+                        clean package -DskipTests
+                '''
+            }
+        }
 
-            echo "=== JAVA ==="
-            java -version
-        '''
-    }
-}
+        stage('Run Application') {
+            steps {
+                sh '''
+                    echo "=== DEPLOYING SPRING BOOT APP ==="
 
-stage('Maven-build') {
-    steps {
-        sh '''
-            mvn -B \
-                -Dmaven.repo.local="$WORKSPACE/.m2/repository" \
-                clean package -DskipTests
-        '''
-    }
-}
+                    # Stop previous application if running
+                    pkill -f 'spring-boot-jenkins-demo.*\\.jar' || true
 
-stage('Run Application') {
-    steps {
-        sh '''
-            echo "=== DEPLOYING SPRING BOOT APP ==="
+                    # Start application in background
+                    nohup java -jar target/*.jar \
+                        --server.port=8000 \
+                        > spring-boot.log 2>&1 &
 
-            # Stop previous application if running
-            pkill -f 'spring-boot-jenkins-demo.*\\.jar' || true
+                    echo "=== APPLICATION STARTED ==="
+                    sleep 5
 
-            # Start application in background
-            nohup java -jar target/*.jar \
-                --server.port=8000 \
-                > spring-boot.log 2>&1 &
+                    echo "=== APPLICATION LOG ==="
+                    tail -30 spring-boot.log
 
-            echo "=== APPLICATION STARTED ==="
-            sleep 5
-
-            echo "=== APPLICATION LOG ==="
-            tail -30 spring-boot.log
-
-            echo "=== RUNNING PROCESS ==="
-            ps aux | grep '[s]pring-boot'
-        '''
-    }
-}
+                    echo "=== RUNNING PROCESS ==="
+                    ps aux | grep '[s]pring-boot'
+                '''
+            }
+        }
 
         stage('Health Check') {
             steps {
